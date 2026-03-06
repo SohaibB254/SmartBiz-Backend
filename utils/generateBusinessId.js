@@ -7,4 +7,5 @@ const generateBusinessId = (length = 6)=>{
   }
   return result;
 }
+
 module.exports = generateBusinessId

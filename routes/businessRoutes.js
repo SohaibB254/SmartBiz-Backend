@@ -33,7 +33,13 @@ router.post('/create-profile', isLoggedIn,
             // Getting the user
             const owner = req.user
             //Generating a unique 6 figure id
-            const customId = generateBusinessId()
+            let customId = generateBusinessId(6)
+
+            const duplicateCustomIdBusiness = await businessModel.find({customId: customId})
+
+            if(duplicateCustomIdBusiness){
+                customId = generateBusinessId()
+            }
             //Create a new business
 
             const newBusiness = await businessModel.create({
@@ -95,7 +101,7 @@ router.patch('/:businessId/:status', isLoggedIn, async (req, res) => {
         }
         return res.status(200).json({
             success: true,
-            message: "Status updated successfully"
+            message: "Status updated successfully",
 
         })
     } catch (error) {

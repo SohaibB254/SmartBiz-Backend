@@ -12,7 +12,8 @@ const businessSchema = new mongoose.Schema({
     customId: {
         type: String,
         unique: true,
-        index: true
+        required: true,
+        sparse: true
     },
     ownerName: {
         type: String,

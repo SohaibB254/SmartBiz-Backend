@@ -26,12 +26,14 @@ const serviceSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    trim: true
+    trim: true,
+    default: 'service'
   },
   isActive: {
     type: Boolean,
     default: true
   },
+  // for future use
   rating: {
     type: Number,
     min: 0,
