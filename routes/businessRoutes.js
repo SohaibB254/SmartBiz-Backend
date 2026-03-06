@@ -6,6 +6,7 @@ const upload = require('../config/multerConfig')
 const isLoggedIn = require('../middlewares/isLoggedIn')
 const generateBusinessId = require('../utils/generateBusinessId')
 const { z } = require("zod")
+const userModel = require('../models/userModel')
 //Business Profile Creation Route
 
 router.post('/create-profile', isLoggedIn,
@@ -41,7 +42,9 @@ router.post('/create-profile', isLoggedIn,
                 customId,
                 image: imagePath
             })
-
+            // Change user's role
+            const updatedUser = await userModel.findByIdAndUpdate(owner._id,{role: 'seller'})
+            await updatedUser.save()
             return res.status(200).json({
                 success: true,
                 message: "Business Profile created successfully",
@@ -63,7 +66,6 @@ router.patch('/:businessId/:status', isLoggedIn, async (req, res) => {
     const ownerId = req.user
     const { businessId, status } = req.params
     try {
-
         // Dynamically setting status with single route
         let setStatus;
         if (status == "deactivate") {
@@ -91,6 +93,11 @@ router.patch('/:businessId/:status', isLoggedIn, async (req, res) => {
                 message: "Business Not found"
             })
         }
+        return res.status(200).json({
+            success: true,
+            message: "Status updated successfully"
+
+        })
     } catch (error) {
         console.error(error);
         return res.status(400).json({

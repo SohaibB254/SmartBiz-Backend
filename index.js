@@ -17,6 +17,7 @@ app.use(cookieParser())
 
 app.use('/auth',require('./routes/authRoutes'))
 app.use('/business',require('./routes/businessRoutes'))
+app.use('/products',require('./routes/productRoutes'))
 app.listen(3000, (req, res) => {
     console.log("Bakend firedd...");
 
