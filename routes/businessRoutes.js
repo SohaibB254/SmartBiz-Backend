@@ -7,177 +7,189 @@ const isLoggedIn = require('../middlewares/isLoggedIn')
 const generateBusinessId = require('../utils/generateBusinessId')
 const { z } = require("zod")
 const userModel = require('../models/userModel')
-//Business Profile Creation Route
 
+
+// Create a new Business Profile
 router.post('/create-profile', isLoggedIn,
     (req, res, next) => {
-        //Setting upload type
-        req.uploadType = "business"
-        next()
+        // Setting upload type for multer
+        req.uploadType = "business";
+        next();
     }, upload.single('image'), async (req, res) => {
 
-        let result = businessZodSchema.safeParse(req.body)
+        let result = businessZodSchema.safeParse(req.body);
+
+        // Validation failed → 400 Bad Request
         if (!result.success) {
-            return res.status(500).json(z.treeifyError(result.error))
+            return res.status(400).json(z.treeifyError(result.error));
         }
+
         try {
+            // Save uploaded image path if provided
             const imagePath = req.file ? `uploads/business/${req.file.filename}` : null;
-            //check if business with this title already exists
-            const existingBusiness = await businessModel.findOne({ title: result.data.title })
+
+            // Check if business with this title already exists
+            const existingBusiness = await businessModel.findOne({ title: result.data.title });
             if (existingBusiness) {
-                return res.status(500).json({
+                // Conflict → 409
+                return res.status(409).json({
                     success: false,
                     message: "This title is taken, Please enter a unique business title"
-                })
+                });
             }
-            // Getting the user
-            const owner = req.user
-            //Generating a unique 6 figure id
-            let customId = generateBusinessId(6)
 
-            const duplicateCustomIdBusiness = await businessModel.find({customId: customId})
+            // Get the logged-in user
+            const owner = req.user;
 
-            if(duplicateCustomIdBusiness){
-                customId = generateBusinessId()
+            // Generate a unique 6-digit business ID
+            let customId = generateBusinessId(6);
+
+            // Ensure uniqueness of customId
+            const duplicateCustomIdBusiness = await businessModel.findOne({ customId });
+            if (duplicateCustomIdBusiness) {
+                customId = generateBusinessId();
             }
-            //Create a new business
 
+            // Create new business profile
             const newBusiness = await businessModel.create({
                 ...result.data,
                 owner: owner._id,
                 customId,
                 image: imagePath
-            })
-            // Change user's role
-            const updatedUser = await userModel.findByIdAndUpdate(owner._id,{role: 'seller'})
-            await updatedUser.save()
-            return res.status(200).json({
+            });
+
+            // Update user role to seller
+            const updatedUser = await userModel.findByIdAndUpdate(owner._id, { role: 'seller' }, { new: true });
+            await updatedUser.save();
+
+            // 201 Created → new resource
+            return res.status(201).json({
                 success: true,
                 message: "Business Profile created successfully",
                 newBusiness
-            })
+            });
 
         } catch (error) {
-            console.error(error)
+            // 500 Internal Server Error
             return res.status(500).json({
                 success: false,
                 message: "Internal server error",
-            })
+            });
         }
-    })
+    });
 
-// Deactivate or activate  Business Profile route
+// Activate or Deactivate Business Profile
 router.patch('/:businessId/:status', isLoggedIn, async (req, res) => {
+    const ownerId = req.user;
+    const { businessId, status } = req.params;
 
-    const ownerId = req.user
-    const { businessId, status } = req.params
     try {
-        // Dynamically setting status with single route
-        let setStatus;
-        if (status == "deactivate") {
-            setStatus = false
-        } else {
-            setStatus = true
-        }
-        // Make sure only owner can deactivate
-        const isAuthorized = await businessModel.findOne({ owner: ownerId })
+        // Dynamically set status
+        let setStatus = status === "deactivate" ? false : true;
+
+        // Ensure only owner can change status
+        const isAuthorized = await businessModel.findOne({ owner: ownerId });
         if (!isAuthorized) {
-            return res.status(400).json({
+            // 403 Forbidden
+            return res.status(403).json({
                 success: false,
                 message: "You are not authorized for this action"
-            })
+            });
         }
-        // Update business
+
+        // Update business status
         const updatedBusiness = await businessModel.findOneAndUpdate(
-            { customId: businessId }
-            , { $set: { isActive: setStatus } }
-            , { returnDocument: 'after' })
+            { customId: businessId },
+            { $set: { isActive: setStatus } },
+            { returnDocument: 'after' }
+        );
 
         if (!updatedBusiness) {
-            return res.status(400).json({
+            // 404 Not Found
+            return res.status(404).json({
                 success: false,
-                message: "Business Not found"
-            })
+                message: "Business not found"
+            });
         }
+
+        // 200 OK
         return res.status(200).json({
             success: true,
             message: "Status updated successfully",
+            updatedBusiness
+        });
 
-        })
     } catch (error) {
-        console.error(error);
-        return res.status(400).json({
+        // 500 Internal Server Error
+        return res.status(500).json({
             success: false,
             message: "Internal server error"
-        })
-
+        });
     }
-
-})
+});
 
 // Update Business Profile
 router.put('/:businessId/update', isLoggedIn,
     (req, res, next) => {
-        //Setting upload type
-        req.uploadType = "business"
-        next()
+        // Setting upload type for multer
+        req.uploadType = "business";
+        next();
     }, upload.single('image'), async (req, res) => {
 
-        // Getting user
-        const ownerId = req.user
-        // Getting Business Id
+        const ownerId = req.user;
         const { businessId } = req.params;
 
-        let result = businessUpdateZodSchema.safeParse(req.body)
+        let result = businessUpdateZodSchema.safeParse(req.body);
+
+        // Validation failed → 400 Bad Request
         if (!result.success) {
-            return res.status(500).json(z.treeifyError(result.error))
+            return res.status(400).json(z.treeifyError(result.error));
         }
 
         try {
-            //check if business  exists
-            const foundBusiness = await businessModel.findOne({ customId: businessId })
+            // Check if business exists
+            const foundBusiness = await businessModel.findOne({ customId: businessId });
             if (!foundBusiness) {
-                return res.status(500).json({
+                // 404 Not Found
+                return res.status(404).json({
                     success: false,
-                    message: "Busines not found"
-                })
+                    message: "Business not found"
+                });
             }
 
-
-            //Update the image only if there is a change
+            // Update image only if new file uploaded
             const imagePath = req.file ? `uploads/business/${req.file.filename}` : foundBusiness.image;
 
-            // Make sure only owner can deactivate
-            const isAuthorized = await businessModel.findOne({ owner: ownerId })
+            // Ensure only owner can update
+            const isAuthorized = await businessModel.findOne({ owner: ownerId });
             if (!isAuthorized) {
-                return res.status(400).json({
+                // 403 Forbidden
+                return res.status(403).json({
                     success: false,
                     message: "You are not authorized for this action"
-                })
+                });
             }
 
-
-            //Update found business
-
+            // Update business profile
             const updatedBusiness = await businessModel.findOneAndUpdate(
-                { customId: businessId }
-                , { $set:result.data, image: imagePath }
-                , { returnDocument: 'after' }
+                { customId: businessId },
+                { $set: { ...result.data, image: imagePath } },
+                { returnDocument: 'after' }
+            );
 
-            )
-
+            // 200 OK
             return res.status(200).json({
                 success: true,
-                message: "Business Profile Updated successfully",
+                message: "Business Profile updated successfully",
                 updatedBusiness
-            })
+            });
 
         } catch (error) {
-            console.error(error)
+            // 500 Internal Server Error
             return res.status(500).json({
                 success: false,
                 message: "Internal server error",
-            })
+            });
         }
-    })
+    });
 module.exports = router

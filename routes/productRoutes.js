@@ -64,7 +64,7 @@ router.post("/add", isLoggedIn,
     }
   });
 
-// 2️⃣ Update a product
+//  Update a product
 router.put("/:id/edit", isLoggedIn, upload.single("image"), async (req, res) => {
 
   const { id } = req.params

@@ -82,8 +82,6 @@ router.post('/:id/create-order', isLoggedIn, async (req, res) => {
             order: newOrder
         });
     } catch (error) {
-        console.error(error.message);
-
         return res.status(500).json({
             success: false,
             message: " Internal server error"

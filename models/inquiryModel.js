@@ -1,37 +1,42 @@
 const mongoose = require('mongoose');
 
+const messageSchema = new mongoose.Schema({
+  senderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'user',
+    required: true
+  },
+  text: {
+    type: String,
+    required: true
+  },
+  sentAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
 const inquirySchema = new mongoose.Schema({
   customerId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // assuming you have a User model
+    ref: 'user',
     required: true
   },
   sellerId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // or Seller model if separate
+    ref: 'user',
     required: true
   },
-  productId: {
+  itemType: {
+    type: String,
+    required: true
+  },
+  item: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product',
+    refPath: 'itemType',
     required: true
   },
-  messages: [
-    {
-      senderId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      },
-      text: {
-        type: String,
-        trim: true
-      },
-      sentAt: {
-        type: Date,
-        default: Date.now
-      }
-    }
-  ],
+  messages: [messageSchema], // embedded for faster retrieval
   status: {
     type: String,
     enum: ['open', 'closed', 'replied'],
@@ -43,11 +48,9 @@ const inquirySchema = new mongoose.Schema({
   },
   orderPlaced: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Order', // link to an Order if resolution leads to purchase
+    ref: 'order',
     default: null
   }
-}, {
-  timestamps: true // adds createdAt and updatedAt automatically
-});
+}, { timestamps: true });
 
-module.exports = mongoose.model('Inquiry', inquirySchema);
+module.exports = mongoose.model('inquiry', inquirySchema);
