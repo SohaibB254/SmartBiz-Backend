@@ -12,8 +12,18 @@ const orderSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  item :{
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    refPath: 'order_category'
+  },
   customerId: {
     type: mongoose.Schema.Types.ObjectId,
+    ref: 'user',
+    required: true
+  },
+  sellerId: {
+      type: mongoose.Schema.Types.ObjectId,
     ref: 'user',
     required: true
   },
@@ -34,6 +44,7 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  // Only for service orders
   date_approval: {
     type: Date
   },
@@ -42,16 +53,18 @@ const orderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    required: true
   },
+  // Only for service orders
   customerNotes: {
     type: String,
     trim: true
   },
+  // Only for product orders
   deliveryAddress: {
     type: String,
     trim: true
   },
+  // Only for service orders
   upload_files: [
     {
       type: String,
