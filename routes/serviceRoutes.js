@@ -3,7 +3,6 @@ const serviceModel = require('../models/serviceModel')
 const businessModel = require("../models/businessModel");
 const isLoggedIn = require("../middlewares/isLoggedIn");
 const upload = require("../config/multerConfig");
-const userModel = require("../models/userModel");
 const router = express.Router();
 
 
@@ -154,33 +153,109 @@ router.patch("/:id/:status",isLoggedIn, async (req, res) => {
 });
 
 //  Get a service publicly
-router.get("/:id", isLoggedIn, async (req, res) => {
+router.get("/:id/view", isLoggedIn, async (req, res) => {
   try {
-    const service = await serviceModel.findById(req.params.id).populate("businessId")
+    const service = await serviceModel.findById(req.params.id)
+    .populate("businessId",'title description ownerName customId')
+    .populate('sellerId', 'username email')
     if (!service) return res.status(404).json({
       success: false,
        message: "service not found"
        });
-       // Seller information
-       const seller = await userModel.findById(service.sellerId).select('-password  -wallet');
-          if (!seller) return res.status(404).json({
-       success: false,
-       message: "Seller information not found",
-       service
-       });
-
        // Returning the service
     res.status(200).json({
       success: true,
       service,
-      seller
     });
   } catch (err) {
-
     res.status(400).json({
       success: false,
-      message: " Internal server error"
+      message: " Internal server error",
      });
+  }
+});
+// Get all services for a specific business by customId
+router.get('/:customId/view-all', async (req, res) => {
+  try {
+    const { customId } = req.params;
+
+    // Find the business by customId
+    const business = await businessModel.findOne({ customId });
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        message: "Business not found"
+      });
+    }
+
+    // Find all services belonging to this business
+    const services = await serviceModel.find({ businessId: business._id })
+      .populate("businessId", "title description ownerName customId")
+      .populate("sellerId", "username email");
+
+    if (!services || services.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No services found for this business"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      services
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+});
+// Search services by title or business name
+router.get('/search', async (req, res) => {
+  try {
+    const { title, businessName } = req.query;
+
+    // Build filter dynamically
+    let filter = {};
+    if (title) {
+      // Case-insensitive partial match on service title
+      filter.title = { $regex: title, $options: 'i' };
+    }
+
+    let servicesQuery = serviceModel.find(filter)
+      .populate("businessId", "title description ownerName customId")
+      .populate("sellerId", "username email");
+
+    let services = await servicesQuery;
+
+    // If searching by business name, filter after populate
+    if (businessName) {
+      services = services.filter(s =>
+        s.businessId?.title?.toLowerCase().includes(businessName.toLowerCase())
+      );
+    }
+
+    if (!services || services.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No services found matching search criteria"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      services
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
   }
 });
 

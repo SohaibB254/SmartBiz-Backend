@@ -151,26 +151,20 @@ router.patch("/:id/:status",isLoggedIn, async (req, res) => {
 });
 
 //  Get a product publicly
-router.get("/:id", isLoggedIn, async (req, res) => {
+router.get("/:id/view", isLoggedIn, async (req, res) => {
   try {
-    const product = await productModel.findById(req.params.id).populate("businessId")
+    const product = await productModel.findById(req.params.id)
+    .populate("businessId", 'title ownerName description customId')
+    .populate("sellerId", "username email ")
     if (!product) return res.status(404).json({
       success: false,
        message: "Product not found"
-       });
-       // Seller information
-       const seller = await userModel.findById(product.sellerId).select('-password  -wallet');
-          if (!seller) return res.status(404).json({
-       success: false,
-       message: "Seller information not found",
-       product
        });
 
        // Returning the product
     res.status(200).json({
       success: true,
       product,
-      seller
     });
   } catch (err) {
 
@@ -180,5 +174,86 @@ router.get("/:id", isLoggedIn, async (req, res) => {
      });
   }
 });
+// Get all products for a specific business by customId
+router.get('/:customId/view-all', async (req, res) => {
+  try {
+    const { customId } = req.params;
 
+    // Find all products belonging to this business
+    const products = await productModel.find({ businessId: await businessModel.findOne({ customId }).then(b => b?._id) })
+      .populate("businessId", "title ownerName description customId")
+      .populate("sellerId", "username email");
+
+    if (!products || products.length === 0) {
+      // 404 Not Found → no products for this business
+      return res.status(404).json({
+        success: false,
+        message: "No products found for this business"
+      });
+    }
+
+    // 200 OK → return array of products
+    return res.status(200).json({
+      success: true,
+      products
+    });
+
+  } catch (err) {
+    console.error(err);
+    // 500 Internal Server Error
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+});
+// Search products by title or business name
+router.get('/search', async (req, res) => {
+  try {
+    const { title, businessName } = req.query;
+
+    // Build search filter dynamically
+    let filter = {};
+
+    if (title) {
+      // Case-insensitive partial match on product title
+      filter.title = { $regex: title, $options: 'i' };
+    }
+
+    let productsQuery = productModel.find(filter)
+      .populate("businessId", "title ownerName description customId")
+      .populate("sellerId", "username email");
+
+    // If searching by business name, we need to filter after populating
+    let products = await productsQuery;
+
+    if (businessName) {
+      products = products.filter(p =>
+        p.businessId?.title?.toLowerCase().includes(businessName.toLowerCase())
+      );
+    }
+
+    if (!products || products.length === 0) {
+      // 404 Not Found → no products match search
+      return res.status(404).json({
+        success: false,
+        message: "No products found matching search criteria"
+      });
+    }
+
+    // 200 OK → return array of products
+    return res.status(200).json({
+      success: true,
+      products
+    });
+
+  } catch (err) {
+    console.error(err);
+    // 500 Internal Server Error
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+});
 module.exports = router;

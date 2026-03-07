@@ -159,5 +159,79 @@ router.post('/:inquiryId/message', isLoggedIn, async (req, res) => {
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
+// Get all inquiries for the logged-in seller
+router.get('/seller/inquiries', isLoggedIn, async (req, res) => {
+    try {
+        const sellerId = req.user._id;
 
+        // Find all inquiries where this user is the seller
+        const inquiries = await inquiryModel.find({ sellerId })
+            .sort({ createdAt: -1 }); // newest inquiries first
+
+        return res.status(200).json({
+            success: true,
+            message: "Seller inquiries retrieved successfully",
+            inquiries
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+});
+// Get all inquiries for the logged-in customer
+router.get('/customer/inquiries', isLoggedIn, async (req, res) => {
+    try {
+        const customerId = req.user._id;
+
+        // Find all inquiries where this user is the customer
+        const inquiries = await inquiryModel.find({ customerId })
+            .sort({ createdAt: -1 }); // newest inquiries first
+
+        return res.status(200).json({
+            success: true,
+            message: "Customer inquiries retrieved successfully",
+            inquiries
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+});
+// Get all messages in a specific inquiry, sorted by date
+router.get('/:inquiryId/messages', isLoggedIn, async (req, res) => {
+    try {
+        const { inquiryId } = req.params;
+
+        // Find inquiry and return messages sorted by sentAt
+        const inquiry = await inquiryModel.findById(inquiryId);
+
+        if (!inquiry) {
+            return res.status(404).json({
+                success: false,
+                message: "Inquiry not found"
+            });
+        }
+
+        // Sort messages so oldest at top, newest at bottom
+        const sortedMessages = inquiry.messages.sort((a, b) => a.sentAt - b.sentAt);
+
+        return res.status(200).json({
+            success: true,
+            message: "Messages retrieved successfully",
+            messages: sortedMessages
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+});
 module.exports = router

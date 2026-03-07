@@ -29,6 +29,8 @@ app.use('/orders', require('./routes/orderRoutes'))
 
 app.use('/inquiry', require('./routes/inquiryRoutes'))
 
+app.use('/marketplace', require('./routes/publicMarketPlaceRoutes'))
+
 app.listen(3000, (req, res) => {
     console.log("Bakend firedd...");
 

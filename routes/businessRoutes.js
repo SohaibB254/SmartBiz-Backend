@@ -192,4 +192,37 @@ router.put('/:businessId/update', isLoggedIn,
             });
         }
     });
+    // View Business Profile by ID
+router.get('/:businessId/view', async (req, res) => {
+    const { businessId } = req.params;
+
+    try {
+        // Find business by customId
+        const business = await businessModel.findOne({ customId: businessId })
+            .populate('owner', 'username email role'); // populate owner details for context
+
+        if (!business) {
+            // 404 Not Found → business doesn’t exist
+            return res.status(404).json({
+                success: false,
+                message: "Business not found"
+            });
+        }
+
+        // 200 OK → return business profile
+        return res.status(200).json({
+            success: true,
+            message: "Business profile retrieved successfully",
+            business
+        });
+
+    } catch (error) {
+        console.error(error);
+        // 500 Internal Server Error → unexpected issue
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+});
 module.exports = router

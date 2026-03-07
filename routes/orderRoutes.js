@@ -134,7 +134,7 @@ router.patch('/:id/:status', isLoggedIn, async (req, res) => {
 });
 
 //  View complete order details
-router.get('/:id', isLoggedIn, async (req, res) => {
+router.get('/view/:id', isLoggedIn, async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -157,6 +157,125 @@ router.get('/:id', isLoggedIn, async (req, res) => {
             success: false,
             message: 'Internal server error'
         });
+    }
+});
+
+// Get all orders for the logged-in customer
+router.get('/customer/orders', isLoggedIn, async (req, res) => {
+    try {
+        const customerId = req.user._id;
+        const { page = 1, limit = 10, status = 'all' } = req.query;
+
+        // Build filter dynamically
+        let filter = { customerId };
+        if (status !== 'all') {
+            filter.status = status; // pending, completed, cancelled
+        }
+
+        const orders = await orderModel.find(filter)
+            .sort({ createdAt: -1 }) // newest first
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .populate('item','title price')
+            .populate('customerId','username')
+            .populate('sellerId','username')
+            .populate('businessId', 'title');
+
+        return res.status(200).json({
+            success: true,
+            message: "Customer orders retrieved successfully",
+            orders
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+
+// Get all orders for the logged-in seller
+router.get('/seller/orders', isLoggedIn, async (req, res) => {
+    try {
+        const sellerId = req.user._id;
+        const { page = 1, limit = 10, status = 'all' } = req.query;
+
+        let filter = { sellerId };
+        if (status !== 'all') {
+            filter.status = status;
+        }
+
+        const orders = await orderModel.find(filter)
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .populate('item','title price')
+            .populate('customerId','username')
+            .populate('sellerId','username')
+            .populate('businessId', 'title');
+
+        return res.status(200).json({
+            success: true,
+            message: "Seller orders retrieved successfully",
+            orders
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+// Get orders by status for logged-in user (customer or seller)
+router.get('/status/:status', isLoggedIn, async (req, res) => {
+    try {
+        const { status } = req.params; // pending, completed, cancelled, all
+        const { page = 1, limit = 10, role = 'customer' } = req.query;
+
+        // Decide whether to filter by customer or seller
+        const userId = req.user._id;
+        let filter = role === 'seller' ? { sellerId: userId } : { customerId: userId };
+
+        if (status !== 'all') {
+            filter.status = status;
+        }
+
+        const orders = await orderModel.find(filter)
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit));
+
+        return res.status(200).json({
+            success: true,
+            message: `Orders with status '${status}' retrieved successfully`,
+            orders
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+// Get orders sorted by date for logged-in user
+router.get('/sorted', isLoggedIn, async (req, res) => {
+    try {
+        const { page = 1, limit = 10, role = 'customer', status = 'all' } = req.query;
+
+        const userId = req.user._id;
+        let filter = role === 'seller' ? { sellerId: userId } : { customerId: userId };
+
+        if (status !== 'all') {
+            filter.status = status;
+        }
+
+        const orders = await orderModel.find(filter)
+            .sort({ createdAt: -1 }) // newest first
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit));
+
+        return res.status(200).json({
+            success: true,
+            message: "Orders retrieved and sorted by date",
+            orders
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 });
 
