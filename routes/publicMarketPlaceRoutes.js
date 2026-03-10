@@ -53,7 +53,7 @@ router.get('/products', async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Products retrieved successfully",
-      products
+      items: products
     });
   } catch (err) {
     console.error(err);
@@ -81,7 +81,7 @@ router.get('/services', async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Services retrieved successfully",
-      services
+      items: services
     });
   } catch (err) {
     console.error(err);
@@ -91,5 +91,66 @@ router.get('/services', async (req, res) => {
     });
   }
 });
+// Unified search for services and products
+router.get('/search', async (req, res) => {
+  try {
+    const { title, businessName } = req.query;
 
+    // Build dynamic filter for title
+    let filter = {};
+    if (title) {
+      filter.title = { $regex: title, $options: 'i' };
+    }
+
+    // Query services
+    let servicesQuery = serviceModel.find(filter)
+      .populate("businessId", "title description ownerName customId")
+      .populate("sellerId", "username email");
+
+    // Query products
+    let productsQuery = productModel.find(filter)
+      .populate("businessId", "title description ownerName customId")
+      .populate("sellerId", "username email");
+
+    // Run both queries in parallel
+    let [services, products] = await Promise.all([servicesQuery, productsQuery]);
+
+    // If businessName is provided, include items that match either title OR businessName
+    if (businessName) {
+      const lowerName = businessName.toLowerCase();
+
+      services = services.filter(s =>
+        (title && s.title?.toLowerCase().includes(title.toLowerCase())) ||
+        s.businessId?.title?.toLowerCase().includes(lowerName)
+      );
+
+      products = products.filter(p =>
+        (title && p.title?.toLowerCase().includes(title.toLowerCase())) ||
+        p.businessId?.title?.toLowerCase().includes(lowerName)
+      );
+    }
+
+    // Combine results
+    const results = [...services, ...products];
+
+    if (!results || results.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No services or products found matching search criteria"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      items: results
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+});
 module.exports = router

@@ -61,7 +61,7 @@ router.patch('/:inquiryId/:status', isLoggedIn, async (req, res) => {
         const inquiry = await inquiryModel.findByIdAndUpdate(
             inquiryId,
             { status },
-            { new: true }
+            { returnDocument: 'after' }
         );
 
         res.json({ success: true, inquiry });
@@ -83,7 +83,7 @@ router.post('/:inquiryId/create-order', isLoggedIn, async (req, res) => {
             return res.status(404).json({ success: false, message: 'Inquiry not found' });
         }
 
-  // Genarating an order no
+        // Genarating an order no
         const customOrderId = generateOrderId({ type: 'random', size: 6 })
         // dynamic order creation
         const amount = inquiry.item.price;
@@ -123,7 +123,6 @@ router.post('/:inquiryId/create-order', isLoggedIn, async (req, res) => {
             inquiry
         });
     } catch (error) {
-        console.error(error.message);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
@@ -146,7 +145,6 @@ router.post('/:inquiryId/message', isLoggedIn, async (req, res) => {
 
         // Push new message into messages array
         inquiry.messages.push({ senderId, text });
-        inquiry.status = 'replied'; // auto-update status when a new message is added
         await inquiry.save();
 
         res.status(201).json({
@@ -155,7 +153,6 @@ router.post('/:inquiryId/message', isLoggedIn, async (req, res) => {
             inquiry
         });
     } catch (error) {
-        console.error(error.message);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
@@ -166,7 +163,18 @@ router.get('/seller/inquiries', isLoggedIn, async (req, res) => {
 
         // Find all inquiries where this user is the seller
         const inquiries = await inquiryModel.find({ sellerId })
-            .sort({ createdAt: -1 }); // newest inquiries first
+            .sort({ createdAt: -1 })
+            .populate('customerId', 'username email')
+            .populate('sellerId', 'username email')
+            .populate({
+                path: 'item',
+                select: 'title price businessId',   // only include these fields from Item
+                populate: {
+                    path: 'businessId',
+                    select: 'title ownerName',        // only include these fields from Business
+                    model: 'business'
+                }
+            }) // newest inquiries first
 
         return res.status(200).json({
             success: true,
@@ -188,7 +196,19 @@ router.get('/customer/inquiries', isLoggedIn, async (req, res) => {
 
         // Find all inquiries where this user is the customer
         const inquiries = await inquiryModel.find({ customerId })
-            .sort({ createdAt: -1 }); // newest inquiries first
+            .sort({ createdAt: -1 })
+            .populate('customerId', 'username email')
+            .populate('sellerId', 'username email')
+            .populate({
+                path: 'item',
+                select: 'title price businessId',   // only include these fields from Item
+                populate: {
+                    path: 'businessId',
+                    select: 'title ownerName',        // only include these fields from Business
+                    model: 'business'
+                }
+            })
+            ; // newest inquiries first
 
         return res.status(200).json({
             success: true,

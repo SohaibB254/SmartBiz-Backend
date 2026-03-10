@@ -65,7 +65,7 @@ router.post("/add", isLoggedIn,
   });
 
 //  Update a product
-router.put("/:id/edit", isLoggedIn, upload.single("image"), async (req, res) => {
+router.put("/:id/edit", isLoggedIn, (req, res, next) => { req.uploadType = 'product', next() }, upload.single("image"), async (req, res) => {
 
   const { id } = req.params
 
@@ -93,7 +93,7 @@ router.put("/:id/edit", isLoggedIn, upload.single("image"), async (req, res) => 
     };
     if (req.file) updates.image = `uploads/products/${req.file.filename}`;
 
-    const product = await productModel.findByIdAndUpdate(id, updates, { new: true });
+    const product = await productModel.findByIdAndUpdate(id, updates, { returnDocument: 'after' });
 
     res.status(200).json({
       success: true,
@@ -105,17 +105,18 @@ router.put("/:id/edit", isLoggedIn, upload.single("image"), async (req, res) => 
     res.status(400).json({
       success: false,
       message: "Internal server error",
+      err: err.message
     });
   }
 });
 
 // Change product view status (isActive toggle)
-router.patch("/:id/:status",isLoggedIn, async (req, res) => {
+router.patch("/:id/:status", isLoggedIn, async (req, res) => {
   // Destructuring data from params
-    const { id, status } = req.params
+  const { id, status } = req.params
 
-    // Getting the user
-    const seller = req.user
+  // Getting the user
+  const seller = req.user
   try {
     // finding the product
     const product = await productModel.findById(id);
@@ -123,17 +124,17 @@ router.patch("/:id/:status",isLoggedIn, async (req, res) => {
 
 
     // Authorizing the user
-    if(product.sellerId.toString() !== seller._id.toString() ){
-    return res.status(404).json({
+    if (product.sellerId.toString() !== seller._id.toString()) {
+      return res.status(404).json({
         success: false,
         message: "Unauthorized action"
-       });
+      });
     }
 
-    if(status=="deactivate"){
-      product.isActive = false ;
-    }else{
-      product.isActive = true ;
+    if (status == "deactivate") {
+      product.isActive = false;
+    } else {
+      product.isActive = true;
     }
 
     await product.save();
@@ -141,12 +142,13 @@ router.patch("/:id/:status",isLoggedIn, async (req, res) => {
     res.json({
       success: true,
       message: "Status updated successfully",
-       product });
+      product
+    });
   } catch (err) {
     res.status(400).json({
       success: false,
       message: "Internal server error"
-     });
+    });
   }
 });
 
@@ -154,24 +156,24 @@ router.patch("/:id/:status",isLoggedIn, async (req, res) => {
 router.get("/:id/view", isLoggedIn, async (req, res) => {
   try {
     const product = await productModel.findById(req.params.id)
-    .populate("businessId", 'title ownerName description customId')
-    .populate("sellerId", "username email ")
+      .populate("businessId", 'title ownerName description customId')
+      .populate("sellerId", "username email ")
     if (!product) return res.status(404).json({
       success: false,
-       message: "Product not found"
-       });
+      message: "Product not found"
+    });
 
-       // Returning the product
+    // Returning the product
     res.status(200).json({
       success: true,
-      product,
+      item: product,
     });
   } catch (err) {
 
     res.status(400).json({
       success: false,
       message: " Internal server error"
-     });
+    });
   }
 });
 // Get all products for a specific business by customId
@@ -195,7 +197,7 @@ router.get('/:customId/view-all', async (req, res) => {
     // 200 OK → return array of products
     return res.status(200).json({
       success: true,
-      products
+      items: products
     });
 
   } catch (err) {
@@ -207,53 +209,5 @@ router.get('/:customId/view-all', async (req, res) => {
     });
   }
 });
-// Search products by title or business name
-router.get('/search', async (req, res) => {
-  try {
-    const { title, businessName } = req.query;
 
-    // Build search filter dynamically
-    let filter = {};
-
-    if (title) {
-      // Case-insensitive partial match on product title
-      filter.title = { $regex: title, $options: 'i' };
-    }
-
-    let productsQuery = productModel.find(filter)
-      .populate("businessId", "title ownerName description customId")
-      .populate("sellerId", "username email");
-
-    // If searching by business name, we need to filter after populating
-    let products = await productsQuery;
-
-    if (businessName) {
-      products = products.filter(p =>
-        p.businessId?.title?.toLowerCase().includes(businessName.toLowerCase())
-      );
-    }
-
-    if (!products || products.length === 0) {
-      // 404 Not Found → no products match search
-      return res.status(404).json({
-        success: false,
-        message: "No products found matching search criteria"
-      });
-    }
-
-    // 200 OK → return array of products
-    return res.status(200).json({
-      success: true,
-      products
-    });
-
-  } catch (err) {
-    console.error(err);
-    // 500 Internal Server Error
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error"
-    });
-  }
-});
 module.exports = router;

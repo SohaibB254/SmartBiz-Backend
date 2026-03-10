@@ -4,6 +4,7 @@ const app = express()
 const cors = require('cors')
 const dotenv = require('dotenv')
 const cookieParser = require('cookie-parser')
+const path = require('path')
 
 //Configuring Enviornment Variables
 dotenv.config()
@@ -13,8 +14,14 @@ dbConnect()
 //Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors())
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true,
+}))
 app.use(cookieParser())
+
+// Serve static files from "uploads" folder
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/auth', require('./routes/authRoutes'))

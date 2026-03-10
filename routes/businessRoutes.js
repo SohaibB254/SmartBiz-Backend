@@ -18,6 +18,15 @@ router.post('/create-profile', isLoggedIn,
     }, upload.single('image'), async (req, res) => {
 
         let result = businessZodSchema.safeParse(req.body);
+        // Get the logged-in user
+        const owner = req.user;
+
+        if(owner.role === 'seller'){
+            return res.status(501).json({
+                success: false,
+                message: "You already have a business profile"
+            })
+        }
 
         // Validation failed → 400 Bad Request
         if (!result.success) {
@@ -38,8 +47,6 @@ router.post('/create-profile', isLoggedIn,
                 });
             }
 
-            // Get the logged-in user
-            const owner = req.user;
 
             // Generate a unique 6-digit business ID
             let customId = generateBusinessId(6);
@@ -59,7 +66,7 @@ router.post('/create-profile', isLoggedIn,
             });
 
             // Update user role to seller
-            const updatedUser = await userModel.findByIdAndUpdate(owner._id, { role: 'seller' }, { new: true });
+            const updatedUser = await userModel.findByIdAndUpdate(owner._id, { role: 'seller' }, { returnDocument: 'after' });
             await updatedUser.save();
 
             // 201 Created → new resource

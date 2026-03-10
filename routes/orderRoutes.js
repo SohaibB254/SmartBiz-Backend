@@ -95,25 +95,19 @@ router.patch('/:id/:status', isLoggedIn, async (req, res) => {
         const { id, status } = req.params;
 
         // Authorizing the user
-        const seller = req.user;
-
-        if (seller.role !== "seller") {
-            return res.status(501).json({
-                success: false,
-                message: "Unauthorized action"
-            })
-        }
-
+        const user = req.user;
         // Validate status
         if (!['pending', 'completed', 'cancelled'].includes(status)) {
             return res.status(400).json({ error: 'Invalid status value' });
         }
-
         const updatedOrder = await orderModel.findOneAndUpdate(
             { customOrderId: id },
             { status },
             { returnDocument: "after" }
         );
+        if(status === 'completed'){
+            updatedOrder.date_completion = Date.now()
+        }
 
         if (!updatedOrder) {
             return res.status(404).json({ error: 'Order not found' });
@@ -121,10 +115,11 @@ router.patch('/:id/:status', isLoggedIn, async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: `Order status updated to ${status}`,
+            message: `Order has been ${status}`,
             order: updatedOrder
         });
     } catch (error) {
+        console.log(error.message);
 
         return res.status(500).json({
             success: false,
@@ -179,7 +174,7 @@ router.get('/customer/orders', isLoggedIn, async (req, res) => {
             .populate('item','title price')
             .populate('customerId','username')
             .populate('sellerId','username')
-            .populate('businessId', 'title');
+            .populate('businessId', 'title ownerName');
 
         return res.status(200).json({
             success: true,

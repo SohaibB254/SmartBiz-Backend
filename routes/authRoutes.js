@@ -6,7 +6,8 @@ const userLoginSchema = require('../validations/userLoginValidation')
 const express = require("express");
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
-const { z } = require("zod")
+const { z } = require("zod");
+const isLoggedIn = require("../middlewares/isLoggedIn");
 // Signup Route
 router.post('/sign-up', async (req, res) => {
     const result = userZodSchema.safeParse(req.body);
@@ -89,7 +90,12 @@ router.post('/login', async (req, res) => {
                 message: "Password is incorrect"
             });
         }
-
+        const userData = {
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            wallet: user.wallet
+        }
         // Generate auth token
         const authToken = jwt.sign(user.email, JWT_SECRET);
 
@@ -100,7 +106,7 @@ router.post('/login', async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "User logged in successfully",
-            user,
+            userData,
             token: authToken
         });
 
@@ -112,5 +118,32 @@ router.post('/login', async (req, res) => {
         });
     }
 });
+// Logout Route
+router.post('/logout', (req, res) => {
+    try {
+        // Clear the token cookie
+        res.clearCookie('token');
+
+        // 200 (OK) since logout succeeded
+        return res.status(200).json({
+            success: true,
+            message: "User logged out successfully"
+        });
+    } catch (error) {
+        console.log(error.message);
+        
+        // Catch-all for unexpected errors
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+});
+
+// Verify route for frontend
+router.get('/verify', isLoggedIn, (req, res) => {
+  res.status(200).json({ success: true, message: "Authenticated" });
+});
+
 
 module.exports = router

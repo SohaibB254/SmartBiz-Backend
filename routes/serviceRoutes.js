@@ -33,7 +33,7 @@ router.post("/add", isLoggedIn,
       })
     }
 
-    const imagePath = req.file ? `uploads/service/${req.file.filename}` : null;
+    const imagePath = req.file ? `uploads/services/${req.file.filename}` : null;
 
     // Body data
     const { title, price, description } = req.body
@@ -67,7 +67,7 @@ router.post("/add", isLoggedIn,
   });
 
 // Update a service
-router.put("/:id/edit", isLoggedIn, upload.single("image"), async (req, res) => {
+router.put("/:id/edit", isLoggedIn,(req, res, next) => { req.uploadType = 'service', next() }, upload.single("image"), async (req, res) => {
 
   const { id } = req.params
 
@@ -95,7 +95,7 @@ router.put("/:id/edit", isLoggedIn, upload.single("image"), async (req, res) => 
     };
     if (req.file) updates.image = `uploads/services/${req.file.filename}`;
 
-    const service = await serviceModel.findByIdAndUpdate(id, updates, { new: true });
+    const service = await serviceModel.findByIdAndUpdate(id, updates, { returnDocument: 'after' });
 
     res.status(200).json({
       success: true,
@@ -165,7 +165,7 @@ router.get("/:id/view", isLoggedIn, async (req, res) => {
        // Returning the service
     res.status(200).json({
       success: true,
-      service,
+      item: service,
     });
   } catch (err) {
     res.status(400).json({
@@ -202,7 +202,7 @@ router.get('/:customId/view-all', async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      services
+      items: services
     });
 
   } catch (err) {
@@ -213,50 +213,6 @@ router.get('/:customId/view-all', async (req, res) => {
     });
   }
 });
-// Search services by title or business name
-router.get('/search', async (req, res) => {
-  try {
-    const { title, businessName } = req.query;
 
-    // Build filter dynamically
-    let filter = {};
-    if (title) {
-      // Case-insensitive partial match on service title
-      filter.title = { $regex: title, $options: 'i' };
-    }
-
-    let servicesQuery = serviceModel.find(filter)
-      .populate("businessId", "title description ownerName customId")
-      .populate("sellerId", "username email");
-
-    let services = await servicesQuery;
-
-    // If searching by business name, filter after populate
-    if (businessName) {
-      services = services.filter(s =>
-        s.businessId?.title?.toLowerCase().includes(businessName.toLowerCase())
-      );
-    }
-
-    if (!services || services.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No services found matching search criteria"
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      services
-    });
-
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error"
-    });
-  }
-});
 
 module.exports = router;
