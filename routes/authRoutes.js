@@ -50,7 +50,10 @@ router.post('/sign-up', async (req, res) => {
             newUser,
             token: authToken
         });
+
     } catch (error) {
+        console.log(error.message);
+
         // Catch-all for unexpected errors
         return res.status(500).json({
             success: false,
@@ -131,7 +134,7 @@ router.post('/logout', (req, res) => {
         });
     } catch (error) {
         console.log(error.message);
-        
+
         // Catch-all for unexpected errors
         return res.status(500).json({
             success: false,
@@ -142,7 +145,12 @@ router.post('/logout', (req, res) => {
 
 // Verify route for frontend
 router.get('/verify', isLoggedIn, (req, res) => {
-  res.status(200).json({ success: true, message: "Authenticated" });
+    try {
+        res.status(200).json({ success: true, message: "Authenticated" });
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Not Authenticated" });
+    }
 });
 
 

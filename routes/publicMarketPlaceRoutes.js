@@ -83,7 +83,7 @@ router.get('/products', async (req, res) => {
 // Get all services (marketplace view)
 router.get('/services', async (req, res) => {
   try {
-    const { page = 1, limit = 1 } = req.query
+    const { page = 1, limit = 10 } = req.query
 
     const totalCount = (await serviceModel.find()).length
 
