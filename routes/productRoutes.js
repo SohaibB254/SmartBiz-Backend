@@ -103,7 +103,7 @@ router.put("/:id/edit", isLoggedIn, (req, res, next) => { req.uploadType = 'prod
                             if (err) {
                                 console.error("Error deleting old image:", err);
                             } else {
-                                console.log("Old image deleted:", fullPath);
+                                console.log("Old image deleted");
                             }
                         });
                     }

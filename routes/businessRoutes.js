@@ -176,7 +176,7 @@ router.put('/:businessId/update', isLoggedIn,
                         if (err) {
                             console.error("Error deleting old image:", err);
                         } else {
-                            console.log("Old image deleted:", fullPath);
+                            console.log("Old image deleted");
                         }
                     });
                 }
