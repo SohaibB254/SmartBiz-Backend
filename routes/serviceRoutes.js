@@ -4,7 +4,8 @@ const businessModel = require("../models/businessModel");
 const isLoggedIn = require("../middlewares/isLoggedIn");
 const upload = require("../config/multerConfig");
 const router = express.Router();
-
+const fs = require('fs')
+const path = require('path')
 
 // Add a new service
 router.post("/add", isLoggedIn,
@@ -93,6 +94,22 @@ router.put("/:id/edit", isLoggedIn,(req, res, next) => { req.uploadType = 'servi
       price: req.body.price,
       description: req.body.description,
     };
+         // Automatically deleting old images for memory saving
+                if (req.file) {
+                    const oldImagePath = foundBusiness.image;
+
+                    // Delete old image if it exists
+                    if (oldImagePath) {
+                        const fullPath = path.join(process.cwd(), "uploads/services", path.basename(oldImagePath));
+                        fs.unlink(fullPath, (err) => {
+                            if (err) {
+                                console.error("Error deleting old image:", err);
+                            } else {
+                                console.log("Old image deleted:", fullPath);
+                            }
+                        });
+                    }
+                }
     if (req.file) updates.image = `uploads/services/${req.file.filename}`;
 
     const service = await serviceModel.findByIdAndUpdate(id, updates, { returnDocument: 'after' });

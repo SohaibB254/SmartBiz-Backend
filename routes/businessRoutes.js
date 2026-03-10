@@ -7,7 +7,8 @@ const isLoggedIn = require('../middlewares/isLoggedIn')
 const generateBusinessId = require('../utils/generateBusinessId')
 const { z } = require("zod")
 const userModel = require('../models/userModel')
-
+const fs = require('fs')
+const path = require('path')
 
 // Create a new Business Profile
 router.post('/create-profile', isLoggedIn,
@@ -21,7 +22,7 @@ router.post('/create-profile', isLoggedIn,
         // Get the logged-in user
         const owner = req.user;
 
-        if(owner.role === 'seller'){
+        if (owner.role === 'seller') {
             return res.status(501).json({
                 success: false,
                 message: "You already have a business profile"
@@ -164,6 +165,23 @@ router.put('/:businessId/update', isLoggedIn,
                 });
             }
 
+            // Automatically deleting old images for memory saving
+            if (req.file) {
+                const oldImagePath = foundBusiness.image;
+
+                // Delete old image if it exists
+                if (oldImagePath) {
+                    const fullPath = path.join(process.cwd(), "uploads/business/", path.basename(oldImagePath));
+                    fs.unlink(fullPath, (err) => {
+                        if (err) {
+                            console.error("Error deleting old image:", err);
+                        } else {
+                            console.log("Old image deleted:", fullPath);
+                        }
+                    });
+                }
+            }
+
             // Update image only if new file uploaded
             const imagePath = req.file ? `uploads/business/${req.file.filename}` : foundBusiness.image;
 
@@ -192,6 +210,8 @@ router.put('/:businessId/update', isLoggedIn,
             });
 
         } catch (error) {
+            console.log(error.message);
+
             // 500 Internal Server Error
             return res.status(500).json({
                 success: false,
@@ -199,7 +219,7 @@ router.put('/:businessId/update', isLoggedIn,
             });
         }
     });
-    // View Business Profile by ID
+// View Business Profile by ID
 router.get('/:businessId/view', async (req, res) => {
     const { businessId } = req.params;
 

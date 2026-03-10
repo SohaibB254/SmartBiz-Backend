@@ -5,7 +5,8 @@ const isLoggedIn = require("../middlewares/isLoggedIn");
 const upload = require("../config/multerConfig");
 const userModel = require("../models/userModel");
 const router = express.Router();
-
+const fs = require('fs')
+const path = require('path')
 
 // Add a new product
 router.post("/add", isLoggedIn,
@@ -91,6 +92,22 @@ router.put("/:id/edit", isLoggedIn, (req, res, next) => { req.uploadType = 'prod
       price: req.body.price,
       description: req.body.description,
     };
+         // Automatically deleting old images for memory saving
+                if (req.file) {
+                    const oldImagePath = foundBusiness.image;
+
+                    // Delete old image if it exists
+                    if (oldImagePath) {
+                        const fullPath = path.join(process.cwd(), "uploads/products/", path.basename(oldImagePath));
+                        fs.unlink(fullPath, (err) => {
+                            if (err) {
+                                console.error("Error deleting old image:", err);
+                            } else {
+                                console.log("Old image deleted:", fullPath);
+                            }
+                        });
+                    }
+                }
     if (req.file) updates.image = `uploads/products/${req.file.filename}`;
 
     const product = await productModel.findByIdAndUpdate(id, updates, { returnDocument: 'after' });
