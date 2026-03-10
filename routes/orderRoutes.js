@@ -34,6 +34,12 @@ router.post('/:id/create-order', isLoggedIn, async (req, res) => {
         }
         // Dynamic amount setting
         const amount = product ? product.price : service.price
+        // Dynamic paymentStatus setting
+        if(paymentMethod == 'COD'){
+            paymentStatus = 'Pending'
+        }else{
+            paymentStatus = "Paid"
+        }
         // Dynamic seller  setting
         const sellerId = product ? product.sellerId : service.sellerId
         // Dynamic item type  setting
@@ -60,7 +66,8 @@ router.post('/:id/create-order', isLoggedIn, async (req, res) => {
             sellerId,
             businessId,
             item,
-            paymentMethod
+            paymentMethod,
+            paymentStatus
         };
 
         // Dynamically include fields based on category
@@ -107,6 +114,7 @@ router.patch('/:id/:status', isLoggedIn, async (req, res) => {
         );
         if(status === 'completed'){
             updatedOrder.date_completion = Date.now()
+            updatedOrder.PaymentStatus = "Paid"
         }
 
         if (!updatedOrder) {
@@ -166,7 +174,7 @@ router.get('/customer/orders', isLoggedIn, async (req, res) => {
         if (status !== 'all') {
             filter.status = status; // pending, completed, cancelled
         }
-
+        const totalCount = (await orderModel.find(filter)).length
         const orders = await orderModel.find(filter)
             .sort({ createdAt: -1 }) // newest first
             .skip((page - 1) * limit)
@@ -179,7 +187,9 @@ router.get('/customer/orders', isLoggedIn, async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Customer orders retrieved successfully",
+            totalCount,
             orders
+
         });
     } catch (error) {
         console.error(error);
@@ -197,7 +207,7 @@ router.get('/seller/orders', isLoggedIn, async (req, res) => {
         if (status !== 'all') {
             filter.status = status;
         }
-
+         const totalCount = (await orderModel.find(filter)).length
         const orders = await orderModel.find(filter)
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
@@ -210,7 +220,8 @@ router.get('/seller/orders', isLoggedIn, async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Seller orders retrieved successfully",
-            orders
+            orders,
+            totalCount
         });
     } catch (error) {
         console.error(error);

@@ -156,7 +156,7 @@ router.patch("/:id/:status", isLoggedIn, async (req, res) => {
 router.get("/:id/view", isLoggedIn, async (req, res) => {
   try {
     const product = await productModel.findById(req.params.id)
-      .populate("businessId", 'title ownerName description customId')
+      .populate("businessId", 'title ownerName description customId isActive')
       .populate("sellerId", "username email ")
     if (!product) return res.status(404).json({
       success: false,
@@ -183,7 +183,7 @@ router.get('/:customId/view-all', async (req, res) => {
 
     // Find all products belonging to this business
     const products = await productModel.find({ businessId: await businessModel.findOne({ customId }).then(b => b?._id) })
-      .populate("businessId", "title ownerName description customId")
+      .populate("businessId", "title ownerName description customId isActive")
       .populate("sellerId", "username email");
 
     if (!products || products.length === 0) {

@@ -156,7 +156,7 @@ router.patch("/:id/:status",isLoggedIn, async (req, res) => {
 router.get("/:id/view", isLoggedIn, async (req, res) => {
   try {
     const service = await serviceModel.findById(req.params.id)
-    .populate("businessId",'title description ownerName customId')
+    .populate("businessId",'title description ownerName customId isActive')
     .populate('sellerId', 'username email')
     if (!service) return res.status(404).json({
       success: false,
@@ -190,7 +190,7 @@ router.get('/:customId/view-all', async (req, res) => {
 
     // Find all services belonging to this business
     const services = await serviceModel.find({ businessId: business._id })
-      .populate("businessId", "title description ownerName customId")
+      .populate("businessId", "title description ownerName customId isActive")
       .populate("sellerId", "username email");
 
     if (!services || services.length === 0) {

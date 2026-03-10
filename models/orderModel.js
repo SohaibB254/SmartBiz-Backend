@@ -54,6 +54,9 @@ const orderSchema = new mongoose.Schema({
   paymentMethod: {
     type: String,
   },
+  PaymentStatus: {
+    type: String,
+  },
   // Only for service orders
   customerNotes: {
     type: String,
