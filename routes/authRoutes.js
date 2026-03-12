@@ -94,10 +94,12 @@ router.post('/login', async (req, res) => {
             });
         }
         const userData = {
+            _id: user._id,
             username: user.username,
             email: user.email,
             role: user.role,
-            wallet: user.wallet
+            wallet: user.wallet,
+            createdAt: user.createdAt
         }
         // Generate auth token
         const authToken = jwt.sign(user.email, JWT_SECRET);

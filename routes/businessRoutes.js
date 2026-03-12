@@ -220,12 +220,12 @@ router.put('/:businessId/update', isLoggedIn,
         }
     });
 // View Business Profile by ID
-router.get('/:businessId/view', async (req, res) => {
-    const { businessId } = req.params;
+router.get('/:ownerId/view', async (req, res) => {
+    const { ownerId } = req.params;
 
     try {
         // Find business by customId
-        const business = await businessModel.findOne({ customId: businessId })
+        const business = await businessModel.findOne({ owner: ownerId })
             .populate('owner', 'username email role'); // populate owner details for context
 
         if (!business) {

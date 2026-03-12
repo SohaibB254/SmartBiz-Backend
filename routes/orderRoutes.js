@@ -35,7 +35,7 @@ router.post('/:id/create-order', isLoggedIn, async (req, res) => {
         // Dynamic amount setting
         const amount = product ? product.price : service.price
         // Dynamic paymentStatus setting
-        if(paymentMethod == 'COD'){
+        if(paymentMethod === 'COD'){
             paymentStatus = 'Pending'
         }else{
             paymentStatus = "Paid"
@@ -114,8 +114,9 @@ router.patch('/:id/:status', isLoggedIn, async (req, res) => {
         );
         if(status === 'completed'){
             updatedOrder.date_completion = Date.now()
-            updatedOrder.PaymentStatus = "Paid"
+            updatedOrder.paymentStatus = "Paid"
         }
+        await updatedOrder.save()
 
         if (!updatedOrder) {
             return res.status(404).json({ error: 'Order not found' });
@@ -180,8 +181,8 @@ router.get('/customer/orders', isLoggedIn, async (req, res) => {
             .skip((page - 1) * limit)
             .limit(parseInt(limit))
             .populate('item','title price')
-            .populate('customerId','username')
-            .populate('sellerId','username')
+            .populate('customerId','username email')
+            .populate('sellerId','username email')
             .populate('businessId', 'title ownerName');
 
         return res.status(200).json({
@@ -213,8 +214,8 @@ router.get('/seller/orders', isLoggedIn, async (req, res) => {
             .skip((page - 1) * limit)
             .limit(parseInt(limit))
             .populate('item','title price')
-            .populate('customerId','username')
-            .populate('sellerId','username')
+            .populate('customerId','username email')
+            .populate('sellerId','username email')
             .populate('businessId', 'title');
 
         return res.status(200).json({
