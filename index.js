@@ -15,7 +15,7 @@ dbConnect()
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
-  origin: ['http://localhost:5173','https://smart-biz-frontend.vercel.app/'],
+  origin: ['http://localhost:5173','https://smart-biz-frontend.vercel.app'],
   credentials: true,
 }))
 app.use(cookieParser())
@@ -39,6 +39,7 @@ app.use('/inquiry', require('./routes/inquiryRoutes'))
 app.use('/marketplace', require('./routes/publicMarketPlaceRoutes'))
 
 app.listen(3000, (req, res) => {
+  res.send("SmartBiz Backend is live😁")
     console.log("Bakend firedd...");
 
 })
