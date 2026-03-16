@@ -38,8 +38,11 @@ app.use('/inquiry', require('./routes/inquiryRoutes'))
 
 app.use('/marketplace', require('./routes/publicMarketPlaceRoutes'))
 
+app.get('/',(res,req)=>{
+  res.send("SmartBiz Backend is live 🪽✨")
+})
+
 app.listen(3000, (req, res) => {
-  res.send("SmartBiz Backend is live😁")
     console.log("Bakend firedd...");
 
 })
