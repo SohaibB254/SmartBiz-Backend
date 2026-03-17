@@ -41,7 +41,10 @@ router.post('/sign-up', async (req, res) => {
         const authToken = jwt.sign(newUser.email, JWT_SECRET);
 
         // Set token in cookie
-        res.cookie('token', authToken);
+        res.cookie('token', authToken, {
+            secure: true,
+            sameSite: "None"
+        });
 
         // Return 201 (Created) since a new resource was created
         return res.status(201).json({
@@ -105,7 +108,10 @@ router.post('/login', async (req, res) => {
         const authToken = jwt.sign(user.email, JWT_SECRET);
 
         // Set token in cookie
-        res.cookie('token', authToken);
+        res.cookie('token', authToken, {
+            secure: true,
+            sameSite: "None"
+        });
 
         // 200 (OK) since login succeeded
         return res.status(200).json({
@@ -127,7 +133,10 @@ router.post('/login', async (req, res) => {
 router.post('/logout', (req, res) => {
     try {
         // Clear the token cookie
-        res.clearCookie('token');
+        res.clearCookie('token',{
+            secure: true,
+            sameSite: "None"
+        });
 
         // 200 (OK) since logout succeeded
         return res.status(200).json({
